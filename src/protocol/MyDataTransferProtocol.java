@@ -7,7 +7,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 
 	// change the following as you wish:
 	static final int HEADERSIZE = 1; // number of header bytes in each packet
-	static final int DATASIZE = 8; // max. number of user data bytes in each packet
+	static final int DATASIZE = 128; // max. number of user data bytes in each packet
 	int sequence;
 
 	@Override
@@ -45,7 +45,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 			System.out.println("Sent packet with header=" + pkt[0]);
 
 			// schedule a timer for 1000 ms into the future, just to show how that works:
-			client.Utils.Timeout.SetTimeout(1000, this, 28);
+			client.Utils.Timeout.SetTimeout(400, this, sequence);
 
 			// and loop and sleep; you may use this loop to check for incoming acks...
 			boolean stop = false;
