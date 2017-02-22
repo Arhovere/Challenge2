@@ -12,7 +12,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 	static final int HEADERSIZE = 1; // number of header bytes in each packet
 	static final int DATASIZE = 128; // max. number of user data bytes in each packet
 	int sequence;
-	Set<Integer> receivedAcks = new HashSet<Integer>();
+	private Set<Integer> receivedAcks = new HashSet<Integer>();
 
 	@Override
 	public void sender() {
@@ -45,11 +45,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 			filePointer += datalen;
 
 			// send the packet to the network layer
-			getNetworkLayer().sendPacket(pkt);
-			System.out.println("Sent packet with header=" + pkt[0]);
-
-			// schedule a timer for 1000 ms into the future, just to show how that works:
-			client.Utils.Timeout.SetTimeout(3000, this, pkt);
+			sendPacket(pkt);
 
 			// and loop and sleep; you may use this loop to check for incoming acks...
 			boolean stop = false;
@@ -81,9 +77,13 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 		// handle expiration of the timeout:
 		System.out.println("Timer expired with tag=" + pkt[0]);
 		// resend packet
-		getNetworkLayer().sendPacket(pkt);
-		System.out.println("Sent packet with header=" + pkt[0]);
-		client.Utils.Timeout.SetTimeout(3000, this, pkt);
+		sendPacket(pkt);
+	}
+
+	private void sendPacket(Integer[] packet) {
+		getNetworkLayer().sendPacket(packet);
+		System.out.println("Sent packet with header=" + packet[0]);
+		client.Utils.Timeout.SetTimeout(1000, this, packet);
 	}
 
 	@Override
@@ -105,7 +105,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 			Integer[] packet = getNetworkLayer().receivePacket();
 
 			// if we indeed received a packet
-			if (packet != null && (lastSequence == -1 || lastSequence <= packet[0] + 1)) {
+			if (packet != null && (lastSequence == -1 || lastSequence > packet[0])) {
 
 				if (!receivedSequences.contains(packet[0])) {
 					receivedSequences.add(packet[0]);
