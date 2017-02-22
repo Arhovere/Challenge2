@@ -1,6 +1,9 @@
 package protocol;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import client.*;
 
 public class MyDataTransferProtocol extends IRDTProtocol {
@@ -9,6 +12,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 	static final int HEADERSIZE = 1; // number of header bytes in each packet
 	static final int DATASIZE = 128; // max. number of user data bytes in each packet
 	int sequence;
+	Set<Integer> receivedAcks = new HashSet<Integer>();
 
 	@Override
 	public void sender() {
@@ -45,7 +49,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 			System.out.println("Sent packet with header=" + pkt[0]);
 
 			// schedule a timer for 1000 ms into the future, just to show how that works:
-			client.Utils.Timeout.SetTimeout(400, this, sequence);
+			client.Utils.Timeout.SetTimeout(3000, this, pkt);
 
 			// and loop and sleep; you may use this loop to check for incoming acks...
 			boolean stop = false;
@@ -53,6 +57,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 				try {
 					Integer[] acknowledged = getNetworkLayer().receivePacket();
 					if (acknowledged != null) {
+						receivedAcks.add(acknowledged[0]);
 						System.out.println("Received ack:" + acknowledged[0]);
 						stop = true;
 
@@ -69,9 +74,16 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 
 	@Override
 	public void TimeoutElapsed(Object tag) {
-		int z = (Integer) tag;
+		Integer[] pkt = (Integer[]) tag;
+		if (receivedAcks.contains(pkt[0])) {
+			return;
+		}
 		// handle expiration of the timeout:
-		System.out.println("Timer expired with tag=" + z);
+		System.out.println("Timer expired with tag=" + pkt[0]);
+		// resend packet
+		getNetworkLayer().sendPacket(pkt);
+		System.out.println("Sent packet with header=" + pkt[0]);
+		client.Utils.Timeout.SetTimeout(3000, this, pkt);
 	}
 
 	@Override
