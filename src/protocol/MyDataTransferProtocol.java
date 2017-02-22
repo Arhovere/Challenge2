@@ -1,6 +1,9 @@
 package protocol;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import client.*;
 
 public class MyDataTransferProtocol extends IRDTProtocol {
@@ -82,25 +85,36 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 		// note: we don't know yet how large the file will be, so the easiest (but not most efficient)
 		//   is to reallocate the array every time we find out there's more data
 		Integer[] fileContents = new Integer[0];
+		Set<Integer> receivedSequences = new HashSet<>();
 
 		// loop until we are done receiving the file
 		boolean stop = false;
+		int lastSequence = -1;
 		while (!stop) {
 
 			// try to receive a packet from the network layer
 			Integer[] packet = getNetworkLayer().receivePacket();
 
 			// if we indeed received a packet
-			if (packet != null) {
+			if (packet != null && (lastSequence == -1 || lastSequence <= packet[0] + 1)) {
 
-				// tell the user
-				System.out.println("Received packet, length=" + packet.length + "  first byte=" + packet[0]);
+				if (!receivedSequences.contains(packet[0])) {
+					receivedSequences.add(packet[0]);
+					lastSequence = packet[0];
+					// tell the user
+					System.out.println("Received packet, length=" + packet.length + "  first byte=" + packet[0]);
 
-				// append the packet's data part (excluding the header) to the fileContents array, first making it larger
-				int oldlength = fileContents.length;
-				int datalen = packet.length - HEADERSIZE;
-				fileContents = Arrays.copyOf(fileContents, oldlength + datalen);
-				System.arraycopy(packet, HEADERSIZE, fileContents, oldlength, datalen);
+					// append the packet's data part (excluding the header) to the fileContents array, first making it larger
+					int oldlength = fileContents.length;
+					int datalen = packet.length - HEADERSIZE;
+					fileContents = Arrays.copyOf(fileContents, oldlength + datalen);
+					System.arraycopy(packet, HEADERSIZE, fileContents, oldlength, datalen);
+
+					// and let's just hope the file is now complete
+					if (packet[0] == 0) {
+						stop = true;
+					}
+				}
 
 				Integer[] ack = new Integer[1];
 				ack[0] = packet[0];
@@ -108,10 +122,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 				getNetworkLayer().sendPacket(ack);
 				System.out.println("Sent acknowledgement: " + ack[0]);
 
-				// and let's just hope the file is now complete
-				if (packet[0] == 0) {
-					stop = true;
-				}
+
 
 			} else {
 				// wait ~10ms (or however long the OS makes us wait) before trying again
