@@ -7,7 +7,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 
 	// change the following as you wish:
 	static final int HEADERSIZE = 1; // number of header bytes in each packet
-	static final int DATASIZE = 256; // max. number of user data bytes in each packet
+	static final int DATASIZE = 8; // max. number of user data bytes in each packet
 	int sequence;
 
 	@Override
