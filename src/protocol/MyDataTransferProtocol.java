@@ -10,7 +10,7 @@ public class MyDataTransferProtocol extends IRDTProtocol {
 
 	// change the following as you wish:
 	static final int HEADERSIZE = 1; // number of header bytes in each packet
-	static final int DATASIZE = 128; // max. number of user data bytes in each packet
+	static final int DATASIZE = 512; // max. number of user data bytes in each packet
 	int sequence;
 	private Set<Integer> receivedAcks = new HashSet<Integer>();
 
